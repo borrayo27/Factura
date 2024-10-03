@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Factura Electrónica FEL - Flores Contenta</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f4;
+        }
+        .container {
+            width: 70%;
+            margin: 30px auto;
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        h1, h2 {
+            text-align: center;
+        }
+        label {
+            display: block;
+            margin-top: 10px;
+        }
+        input, select {
+            width: 100%;
+            padding: 8px;
+            margin: 5px 0 10px 0;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        table {
+            width: 100%;
+            margin-top: 20px;
+            border-collapse: collapse;
+        }
+        table, th, td {
+            border: 1px solid #ddd;
+        }
+        th, td {
+            padding: 8px;
+            text-align: center;
+        }
+        .center-text {
+            text-align: center;
+        }
+        button {
+            width: 100%;
+            padding: 10px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        #preview, #returnBtn, #emailForm {
+            display: none;
+        }
+    </style>
+    <!-- Incluye jsPDF y jsPDF-AutoTable -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
+</head>
+<body>
+    <div class="container" id="billingForm">
+        <img src="flores.png" alt="Logo Flores Contenta" style="display: block; margin: 0 auto; width: 200px;"/>
+        <h1>Flores Contenta</h1>
+        <h2>Factura Electrónica - Pequeño Contribuyente</h2>
+        <form id="facturaForm">
+            <label for="name">Nombre del cliente:</label>
+            <input type="text" id="name" name="name" placeholder="Nombre del cliente" required>
+
+            <label for="nit">NIT:</label>
+            <input type="text" id="nit" name="nit" placeholder="NIT del cliente" required>
+
+            <label for="address">Dirección:</label>
+            <input type="text" id="address" name="address" placeholder="Dirección" required>
+
+            <label for="product">Descripción del Producto o Servicio:</label>
+            <input type="text" id="product" name="product" placeholder="Descripción" required>
+
+            <label for="quantity">Cantidad:</label>
+            <input type="number" id="quantity" name="quantity" min="1" value="1" required>
+
+            <label for="price">Precio Unitario (con IVA):</label>
+            <input type="number" id="price" name="price" min="0" step="0.01" placeholder="Precio" required>
+
+            <button type="button" onclick="generarFactura()">Generar Factura</button>
+        </form>
+    </div>
+
+    <div class="container" id="preview">
+        <img src="flores.png" alt="Logo Flores Contenta" style="display: block; margin: 0 auto; width: 200px;"/>
+        <h2>Vista Previa de la Factura</h2>
+        <p><strong>Nombre del Cliente:</strong> <span id="previewName"></span></p>
+        <p><strong>NIT:</strong> <span id="previewNit"></span></p>
+        <p><strong>Dirección:</strong> <span id="previewAddress"></span></p>
+        
+        <table>
+            <thead>
+                <tr>
+                    <th>#No.</th>
+                    <th>Descripción</th>
+                    <th>Cantidad</th>
+                    <th>P. Unitario (Q)</th>
+                    <th>Total (Q)</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>1</td>
+                    <td id="previewProduct"></td>
+                    <td id="previewQuantity"></td>
+                    <td id="previewPrice"></td>
+                    <td id="previewTotal"></td>
+                </tr>
+            </tbody>
+        </table>
+
+        <p class="center-text">* No genera derecho a crédito fiscal</p>
+        
+        <button type="button" onclick="confirmarFactura()">Confirmar Factura</button>
+        <button type="button" id="returnBtn" onclick="volverAFacturacion()">Regresar a Facturación</button>
+    </div>
+
+    <script>
+        function generarFactura() {
+            const name = document.getElementById('name').value;
+            const nit = document.getElementById('nit').value;
+            const address = document.getElementById('address').value;
+            const product = document.getElementById('product').value;
+            const quantity = parseInt(document.getElementById('quantity').value);
+            const price = parseFloat(document.getElementById('price').value);
+            const total = quantity * price;
+
+            document.getElementById('previewName').textContent = name;
+            document.getElementById('previewNit').textContent = nit;
+            document.getElementById('previewAddress').textContent = address;
+            document.getElementById('previewProduct').textContent = product;
+            document.getElementById('previewQuantity').textContent = quantity;
+            document.getElementById('previewPrice').textContent = price.toFixed(2);
+            document.getElementById('previewTotal').textContent = total.toFixed(2);
+
+            document.getElementById('billingForm').style.display = 'none';
+            document.getElementById('preview').style.display = 'block';
+        }
+
+        function confirmarFactura() {
+            const name = document.getElementById('name').value;
+            const nit = document.getElementById('nit').value;
+            const address = document.getElementById('address').value;
+            const product = document.getElementById('product').value;
+            const quantity = parseInt(document.getElementById('quantity').value);
+            const price = parseFloat(document.getElementById('price').value);
+            const total = quantity * price;
+
+            // Generar PDF usando jsPDF y autoTable
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+
+            doc.setFontSize(16);
+            doc.text('Flores Contenta - Factura Electrónica', 10, 10);
+            doc.setFontSize(12);
+            doc.text(`Nombre del Cliente: ${name}`, 10, 30);
+            doc.text(`NIT: ${nit}`, 10, 40);
+            doc.text(`Dirección: ${address}`, 10, 50);
+
+            doc.autoTable({
+                startY: 60,
+                head: [['#No.', 'Descripción', 'Cantidad', 'P. Unitario (Q)', 'Total (Q)']],
+                body: [
+                    ['1', product, quantity, price.toFixed(2), total.toFixed(2)]
+                ],
+            });
+
+            doc.text('Gracias por su compra', 10, doc.lastAutoTable.finalY + 10);
+
+            // Reemplazar espacios por guiones bajos en el nombre para evitar problemas en el nombre del archivo
+            const sanitizedFileName = name.replace(/\s+/g, '_').toLowerCase();
+            
+            // Descargar el PDF usando el nombre del cliente
+            doc.save(`${sanitizedFileName}_factura_fel.pdf`);
+        }
+
+        function volverAFacturacion() {
+            document.getElementById('facturaForm').reset();
+            document.getElementById('preview').style.display = 'none';
+            document.getElementById('billingForm').style.display = 'block';
+        }
+    </script>
+</body>
+</html>
